@@ -16,6 +16,7 @@ provider "aws" {
   region = var.region
 }
 
+
 // AWS VPC(Virtual Private Cloud) 리소스를 생성하고 이름을 'vpc_1'로 설정
 resource "aws_vpc" "vpc_1" {
   // VPC의 IP 주소 범위를 설정
@@ -23,6 +24,7 @@ resource "aws_vpc" "vpc_1" {
 
   // DNS 지원을 활성화
   enable_dns_support = true
+
   // DNS 호스트 이름 지정을 활성화
   enable_dns_hostnames = true
 
@@ -32,14 +34,19 @@ resource "aws_vpc" "vpc_1" {
   }
 }
 
+
 // AWS 서브넷 리소스를 생성하고 이름을 'subnet_1'로 설정
 resource "aws_subnet" "subnet_1" {
+
   // 이 서브넷이 속할 VPC를 지정. 여기서는 'vpc_1'를 선택
   vpc_id = aws_vpc.vpc_1.id
+
   // 서브넷의 IP 주소 범위를 설정
   cidr_block = "10.0.1.0/24"
+
   // 서브넷이 위치할 가용 영역을 설정
   availability_zone = "${var.region}a"
+
   // 이 서브넷에 배포되는 인스턴스에 공용 IP를 자동으로 할당
   map_public_ip_on_launch = true
 
@@ -49,14 +56,19 @@ resource "aws_subnet" "subnet_1" {
   }
 }
 
+
 // AWS 서브넷 리소스를 생성하고 이름을 'subnet_2'로 설정
 resource "aws_subnet" "subnet_2" {
+
   // 이 서브넷이 속할 VPC를 지정. 여기서는 'vpc_1'를 선택
   vpc_id = aws_vpc.vpc_1.id
+
   // 서브넷의 IP 주소 범위를 설정
   cidr_block = "10.0.2.0/24"
+
   // 서브넷이 위치할 가용 영역을 설정
   availability_zone = "${var.region}b"
+
   // 이 서브넷에 배포되는 인스턴스에 공용 IP를 자동으로 할당
   map_public_ip_on_launch = true
 
@@ -66,8 +78,10 @@ resource "aws_subnet" "subnet_2" {
   }
 }
 
+
 // AWS 인터넷 게이트웨이 리소스를 생성하고 이름을 'igw_1'로 설정
 resource "aws_internet_gateway" "igw_1" {
+
   // 이 인터넷 게이트웨이가 연결될 VPC를 지정. 여기서는 'vpc_1'를 선택
   vpc_id = aws_vpc.vpc_1.id
 
@@ -80,6 +94,7 @@ resource "aws_internet_gateway" "igw_1" {
 
 // AWS 라우트 테이블 리소스를 생성하고 이름을 'rt_1'로 설정
 resource "aws_route_table" "rt_1" {
+
   // 이 라우트 테이블이 속할 VPC를 지정. 여기서는 'vpc_1'를 선택
   vpc_id = aws_vpc.vpc_1.id
 
@@ -95,18 +110,64 @@ resource "aws_route_table" "rt_1" {
   }
 }
 
+
 // 라우트 테이블 'rt_1'과 서브넷 'subnet_1'을 연결
 resource "aws_route_table_association" "association_1" {
+
   // 연결할 서브넷을 지정
   subnet_id = aws_subnet.subnet_1.id
+
   // 연결할 라우트 테이블을 지정
   route_table_id = aws_route_table.rt_1.id
 }
 
+
 // 라우트 테이블 'rt_1'과 서브넷 'subnet_2'을 연결
 resource "aws_route_table_association" "association_2" {
+
   // 연결할 서브넷을 지정
   subnet_id = aws_subnet.subnet_2.id
+
   // 연결할 라우트 테이블을 지정
   route_table_id = aws_route_table.rt_1.id
+}
+
+
+// AWS 보안 그룹 리소스를 생성하고 이름을 'sg_1'로 설정
+resource "aws_security_group" "sg_1" {
+
+  // 보안 그룹의 이름을 설정. 이름 앞에는 변수로부터 받은 prefix를 붙임
+  name = "${var.prefix}-sg-1"
+
+  // 인바운드 트래픽 규칙을 설정
+  // 여기서는 모든 프로토콜, 모든 포트에 대해 모든 IP(0.0.0.0/0)로부터의 트래픽을 허용
+  ingress {
+    from_port = 0
+    to_port   = 0
+
+    // 모든 프로토콜을 의미하는 AWS 공식 값 (-1)
+    protocol = "-1"
+
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  // 아웃바운드 트래픽 규칙을 설정
+  // 여기서는 모든 프로토콜, 모든 포트에 대해 모든 IP(0.0.0.0/0)로의 트래픽을 허용
+  egress {
+    from_port = 0
+    to_port   = 0
+
+    // 모든 프로토콜을 의미하는 AWS 공식 값 (-1)
+    protocol = "-1"
+
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  // 이 보안 그룹이 속할 VPC를 지정. 여기서는 'vpc_1'를 선택
+  vpc_id = aws_vpc.vpc_1.id
+
+  // 리소스에 대한 태그를 설정
+  tags = {
+    Name = "${var.prefix}-sg-1"
+  }
 }
