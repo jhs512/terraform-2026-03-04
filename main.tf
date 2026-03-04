@@ -262,7 +262,7 @@ resource "aws_instance" "ec2_1" {
   instance_type = "t3.micro"
 
   # 사용할 서브넷 ID
-  subnet_id = aws_subnet.subnet_1.id
+  subnet_id = aws_subnet.subnet_2.id
 
   # 적용할 보안 그룹 ID
   vpc_security_group_ids = [aws_security_group.sg_1.id]
@@ -290,7 +290,7 @@ resource "aws_instance" "ec2_2" {
   instance_type = "t3.micro"
 
   # 사용할 서브넷 ID
-  subnet_id = aws_subnet.subnet_3.id
+  subnet_id = aws_subnet.subnet_2.id
 
   # 적용할 보안 그룹 ID
   vpc_security_group_ids = [aws_security_group.sg_1.id]
