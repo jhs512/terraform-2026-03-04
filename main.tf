@@ -252,6 +252,38 @@ data "aws_ssm_parameter" "amazon_linux_ami" {
 }
 
 
+# EC2 부트스트랩 스크립트 정의
+locals {
+
+  ec2_bootstrap = <<-EOF
+#!/bin/bash
+set -euxo pipefail
+
+timedatectl set-timezone Asia/Seoul
+
+LOG_FILE="/var/log/bootstrap.log"
+exec > >(tee -a $LOG_FILE) 2>&1
+
+echo "BOOTSTRAP START"
+
+dnf update -y
+dnf install -y git docker
+
+systemctl enable docker
+systemctl start docker
+
+# swap 4GB 생성
+sudo dd if=/dev/zero of=/swapfile bs=128M count=32
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+sudo sh -c 'echo "/swapfile swap swap defaults 0 0" >> /etc/fstab'
+
+echo "BOOTSTRAP DONE"
+EOF
+}
+
+
 # EC2 인스턴스 생성
 resource "aws_instance" "ec2_1" {
 
@@ -272,6 +304,16 @@ resource "aws_instance" "ec2_1" {
 
   # 인스턴스에 IAM 역할 연결
   iam_instance_profile = aws_iam_instance_profile.instance_profile_1.name
+
+  root_block_device {
+    volume_type = "gp3"
+    volume_size = 12 # 볼륨 크기를 12GB로 설정
+  }
+
+  user_data = <<-EOF
+${local.ec2_bootstrap}
+hostnamectl set-hostname ec2-1
+EOF
 
   # 인스턴스에 태그 설정
   tags = {
@@ -300,6 +342,16 @@ resource "aws_instance" "ec2_2" {
 
   # 인스턴스에 IAM 역할 연결
   iam_instance_profile = aws_iam_instance_profile.instance_profile_1.name
+
+  root_block_device {
+    volume_type = "gp3"
+    volume_size = 12 # 볼륨 크기를 12GB로 설정
+  }
+
+  user_data = <<-EOF
+${local.ec2_bootstrap}
+hostnamectl set-hostname ec2-2
+EOF
 
   # 인스턴스에 태그 설정
   tags = {
